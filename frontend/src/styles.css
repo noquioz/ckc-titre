@@ -96,6 +96,10 @@ select {
   padding: 10px 12px;
 }
 
+input[type='color'] {
+  padding: 0;
+}
+
 textarea {
   resize: vertical;
   min-height: 102px;
@@ -105,6 +109,25 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.color-grid {
+  align-items: start;
+}
+
+.color-control {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.color-picker {
+  height: 44px;
+  min-width: 54px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
 }
 
 .inline-control {

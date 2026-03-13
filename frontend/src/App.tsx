@@ -29,6 +29,7 @@ const defaultConfig: AnimationConfig = {
     palette: ['#1f2036', '#8f6ad4', '#618ec6', '#4b4f8f'],
     noiseScale: 0.0019,
     waveLayers: 12,
+    zoom: 1,
   },
   timing: {
     fps: 30,
@@ -55,6 +56,22 @@ const formatTime = (seconds: number): string => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`;
 };
 
+const isHexColor = (value: string): boolean => /^#([0-9a-f]{6})$/i.test(value.trim());
+
+const normalizeHexColor = (value: string, fallback: string): string => {
+  const trimmed = value.trim();
+  if (isHexColor(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  const withoutHash = trimmed.replace(/^#/, '');
+  if (/^[0-9a-f]{3}$/i.test(withoutHash)) {
+    return `#${withoutHash.split('').map((char) => `${char}${char}`).join('').toLowerCase()}`;
+  }
+
+  return fallback;
+};
+
 function App() {
   const canvasRef = useRef<VideoCanvasHandle | null>(null);
 
@@ -64,6 +81,9 @@ function App() {
   const [textYRatio, setTextYRatio] = useState(defaultConfig.textYRatio);
   const [speedMultiplier, setSpeedMultiplier] = useState(defaultConfig.timing.speedMultiplier);
   const [paletteName, setPaletteName] = useState<keyof typeof palettes>('PurpleBlue');
+  const [backgroundColor, setBackgroundColor] = useState(defaultConfig.backgroundStyle.palette[0]);
+  const [stripeColor, setStripeColor] = useState(defaultConfig.backgroundStyle.palette[1]);
+  const [backgroundZoom, setBackgroundZoom] = useState(defaultConfig.backgroundStyle.zoom);
 
   const [status, setStatus] = useState<string>('Prêt');
   const [exporting, setExporting] = useState(false);
@@ -82,14 +102,26 @@ function App() {
     textYRatio,
     backgroundStyle: {
       ...defaultConfig.backgroundStyle,
-      palette: palettes[paletteName],
+      palette: [
+        normalizeHexColor(backgroundColor, defaultConfig.backgroundStyle.palette[0]),
+        normalizeHexColor(stripeColor, defaultConfig.backgroundStyle.palette[1]),
+        palettes[paletteName][2],
+        palettes[paletteName][3],
+      ],
+      zoom: backgroundZoom,
     },
     timing: {
       ...defaultConfig.timing,
       totalDurationSec: durationSec,
       speedMultiplier,
     },
-  }), [durationSec, fontSize, paletteName, speedMultiplier, text, textYRatio]);
+  }), [backgroundColor, backgroundZoom, durationSec, fontSize, paletteName, speedMultiplier, stripeColor, text, textYRatio]);
+
+  const handlePaletteChange = (palette: keyof typeof palettes) => {
+    setPaletteName(palette);
+    setBackgroundColor(palettes[palette][0]);
+    setStripeColor(palettes[palette][1]);
+  };
 
   const handlePreview = () => {
     canvasRef.current?.playPreview();
@@ -238,10 +270,10 @@ function App() {
         </label>
 
         <label>
-          Palette fond
+          Preset fond
           <select
             value={paletteName}
-            onChange={(event) => setPaletteName(event.target.value as keyof typeof palettes)}
+            onChange={(event) => handlePaletteChange(event.target.value as keyof typeof palettes)}
           >
             {Object.keys(palettes).map((palette) => (
               <option key={palette} value={palette}>
@@ -249,6 +281,58 @@ function App() {
               </option>
             ))}
           </select>
+        </label>
+
+        <div className="grid-two color-grid">
+          <label>
+            Couleur fond
+            <div className="color-control">
+              <input
+                type="color"
+                className="color-picker"
+                value={normalizeHexColor(backgroundColor, defaultConfig.backgroundStyle.palette[0])}
+                onChange={(event) => setBackgroundColor(event.target.value)}
+              />
+              <input
+                type="text"
+                value={backgroundColor}
+                onChange={(event) => setBackgroundColor(event.target.value)}
+                placeholder="#1f2036"
+                spellCheck={false}
+              />
+            </div>
+          </label>
+
+          <label>
+            Couleur lignes
+            <div className="color-control">
+              <input
+                type="color"
+                className="color-picker"
+                value={normalizeHexColor(stripeColor, defaultConfig.backgroundStyle.palette[1])}
+                onChange={(event) => setStripeColor(event.target.value)}
+              />
+              <input
+                type="text"
+                value={stripeColor}
+                onChange={(event) => setStripeColor(event.target.value)}
+                placeholder="#8f6ad4"
+                spellCheck={false}
+              />
+            </div>
+          </label>
+        </div>
+
+        <label>
+          Zoom fond ({backgroundZoom.toFixed(2)}x)
+          <input
+            type="range"
+            min={0.75}
+            max={2.5}
+            step={0.05}
+            value={backgroundZoom}
+            onChange={(event) => setBackgroundZoom(Number(event.target.value))}
+          />
         </label>
 
         <div className="actions">

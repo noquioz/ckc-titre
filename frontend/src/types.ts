@@ -20,6 +20,7 @@ export interface BackgroundStyle {
   palette: [string, string, string, string];
   noiseScale: number;
   waveLayers: number;
+  zoom: number;
 }
 
 export interface TimingStyle {
