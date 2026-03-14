@@ -1,8 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import VideoCanvas, {
   type PlaybackSnapshot,
   type VideoCanvasHandle,
 } from './components/VideoCanvas';
+import {
+  loadPersistedUiSettings,
+  savePersistedUiSettings,
+  type PersistedUiSettings,
+} from './lib/settingsStorage';
 import type { AnimationConfig, ExportResponse } from './types';
 
 const defaultConfig: AnimationConfig = {
@@ -48,6 +53,18 @@ const palettes: Record<string, [string, string, string, string]> = {
   NeonAqua: ['#0a1a21', '#2ad0c2', '#2997ff', '#104f84'],
 };
 
+const defaultUiSettings: PersistedUiSettings = {
+  text: defaultConfig.text,
+  durationSec: defaultConfig.timing.totalDurationSec,
+  fontSize: defaultConfig.textSizePx,
+  textYRatio: defaultConfig.textYRatio,
+  speedMultiplier: defaultConfig.timing.speedMultiplier,
+  paletteName: 'PurpleBlue',
+  backgroundColor: defaultConfig.backgroundStyle.palette[0],
+  stripeColor: defaultConfig.backgroundStyle.palette[1],
+  backgroundZoom: defaultConfig.backgroundStyle.zoom,
+};
+
 const formatTime = (seconds: number): string => {
   const safe = Math.max(0, seconds);
   const mins = Math.floor(safe / 60);
@@ -74,16 +91,25 @@ const normalizeHexColor = (value: string, fallback: string): string => {
 
 function App() {
   const canvasRef = useRef<VideoCanvasHandle | null>(null);
+  const [initialUiSettings] = useState(() =>
+    loadPersistedUiSettings(
+      typeof window === 'undefined' ? undefined : window.localStorage,
+      defaultUiSettings,
+      Object.keys(palettes),
+    ),
+  );
 
-  const [text, setText] = useState(defaultConfig.text);
-  const [durationSec, setDurationSec] = useState(defaultConfig.timing.totalDurationSec);
-  const [fontSize, setFontSize] = useState(defaultConfig.textSizePx);
-  const [textYRatio, setTextYRatio] = useState(defaultConfig.textYRatio);
-  const [speedMultiplier, setSpeedMultiplier] = useState(defaultConfig.timing.speedMultiplier);
-  const [paletteName, setPaletteName] = useState<keyof typeof palettes>('PurpleBlue');
-  const [backgroundColor, setBackgroundColor] = useState(defaultConfig.backgroundStyle.palette[0]);
-  const [stripeColor, setStripeColor] = useState(defaultConfig.backgroundStyle.palette[1]);
-  const [backgroundZoom, setBackgroundZoom] = useState(defaultConfig.backgroundStyle.zoom);
+  const [text, setText] = useState(initialUiSettings.text);
+  const [durationSec, setDurationSec] = useState(initialUiSettings.durationSec);
+  const [fontSize, setFontSize] = useState(initialUiSettings.fontSize);
+  const [textYRatio, setTextYRatio] = useState(initialUiSettings.textYRatio);
+  const [speedMultiplier, setSpeedMultiplier] = useState(initialUiSettings.speedMultiplier);
+  const [paletteName, setPaletteName] = useState<keyof typeof palettes>(
+    initialUiSettings.paletteName as keyof typeof palettes,
+  );
+  const [backgroundColor, setBackgroundColor] = useState(initialUiSettings.backgroundColor);
+  const [stripeColor, setStripeColor] = useState(initialUiSettings.stripeColor);
+  const [backgroundZoom, setBackgroundZoom] = useState(initialUiSettings.backgroundZoom);
 
   const [status, setStatus] = useState<string>('Prêt');
   const [exporting, setExporting] = useState(false);
@@ -116,6 +142,33 @@ function App() {
       speedMultiplier,
     },
   }), [backgroundColor, backgroundZoom, durationSec, fontSize, paletteName, speedMultiplier, stripeColor, text, textYRatio]);
+
+  useEffect(() => {
+    savePersistedUiSettings(
+      typeof window === 'undefined' ? undefined : window.localStorage,
+      {
+        text,
+        durationSec,
+        fontSize,
+        textYRatio,
+        speedMultiplier,
+        paletteName,
+        backgroundColor,
+        stripeColor,
+        backgroundZoom,
+      },
+    );
+  }, [
+    backgroundColor,
+    backgroundZoom,
+    durationSec,
+    fontSize,
+    paletteName,
+    speedMultiplier,
+    stripeColor,
+    text,
+    textYRatio,
+  ]);
 
   const handlePaletteChange = (palette: keyof typeof palettes) => {
     setPaletteName(palette);
